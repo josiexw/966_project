@@ -81,16 +81,16 @@ tri2d_V,   tri2d_E     = make_polygon_2d(tri_pts)
 hex2d_V,   hex2d_E     = make_polygon_2d(hex_pts)
 l2d_V,     l2d_E       = make_polygon_2d(l_pts)
 
-shape_library = Dict(
-    "cube"  => (square_V, square_E),
-    "tri_prism"     => (tri_V, tri_E),
-    "hex_prism"     => (hex_V, hex_E),
-    "l_prism"       => (l_V, l_E),
-    "square_2d"     => (square2d_V, square2d_E),
-    "tri_2d"        => (tri2d_V, tri2d_E),
-    "hex_2d"        => (hex2d_V, hex2d_E),
-    "l_2d"          => (l2d_V, l2d_E),
-)
+wireframes = [
+    (1, "cube",       square_V,   square_E),
+    (2, "tri_prism",  tri_V,      tri_E),
+    (3, "hex_prism",  hex_V,      hex_E),
+    (4, "l_prism",    l_V,        l_E),
+    (5, "square_2d",  square2d_V, square2d_E),
+    (6, "tri_2d",     tri2d_V,    tri2d_E),
+    (7, "hex_2d",     hex2d_V,    hex2d_E),
+    (8, "l_2d",       l2d_V,      l2d_E),
+]
 
 views = [1, 2, 3, 4]
 
@@ -100,28 +100,33 @@ function random_view()
     return az, el
 end
 
-function render_canonical_shapes(shape_library, views; max_imgs::Int=20)
+function render_canonical_shapes(wireframes, views; max_imgs::Int=20)
     mkpath("figures")
     n_saved = 0
+    viewlog_path = joinpath("figures", "views.txt")
 
-    for (shape_name, (Vshape, Eshape)) in shape_library
-        for _ in views
-            azv, elv = random_view()
-            img, fig = render_wireframe_makie(
-                Vshape, Eshape;
-                width=256, height=256,
-                azimuth=azv, elevation=elv
-            )
-            az_str = string(round(azv, digits=2))
-            el_str = string(round(elv, digits=2))
-            fname = joinpath("figures", "$(shape_name)_$(az_str)_$(el_str).png")
-            save(fname, img)
-            n_saved += 1
-            if n_saved >= max_imgs
-                return
+    open(viewlog_path, "w") do io
+        println(io, "wireframe_id,filename,azimuth,elevation")
+        for (id, name, Vshape, Eshape) in wireframes
+            for _ in views
+                azv, elv = random_view()
+                img, fig = render_wireframe_makie(
+                    Vshape, Eshape;
+                    width=256, height=256,
+                    azimuth=azv, elevation=elv
+                )
+                az_str = string(round(azv, digits=2))
+                el_str = string(round(elv, digits=2))
+                fname = "$(name)_$(az_str)_$(el_str).png"
+                save(joinpath("figures", fname), img)
+                println(io, string(id, ",", fname, ",", azv, ",", elv))
+                n_saved += 1
+                if n_saved >= max_imgs
+                    return
+                end
             end
         end
     end
 end
 
-render_canonical_shapes(shape_library, views; max_imgs=40)
+render_canonical_shapes(wireframes, views; max_imgs=40)
