@@ -63,17 +63,17 @@ const OBS_EDGE_MASK = Ref{Union{Nothing, Matrix{Float32}}}(nothing)
 const OBS_EDGE_COUNT = Ref{Float32}(0.0f0)
 const OBS_BLURRED = Ref{Union{Nothing, Matrix{Float32}}}(nothing)
 
-function cache_observation!(obs_img; σ::Real=2.0)
+function cache_observation!(obs_img; sig::Real=2.0)
     m_obs = _edge_mask(obs_img)
     obs_f = Float32.(m_obs)
     
     OBS_EDGE_MASK[] = obs_f
     OBS_EDGE_COUNT[] = sum(obs_f)
-    OBS_BLURRED[] = imfilter(obs_f, Kernel.gaussian((σ, σ)))
+    OBS_BLURRED[] = imfilter(obs_f, Kernel.gaussian((sig, sig)))
     nothing
 end
 
-function edge_proximity_score(pred_img; σ::Real=2.0, verbose::Bool=false)
+function edge_proximity_score(pred_img; sig::Real=2.0, verbose::Bool=false)
     if OBS_BLURRED[] === nothing
         error("Observation not cached!")
     end
@@ -88,7 +88,7 @@ function edge_proximity_score(pred_img; σ::Real=2.0, verbose::Bool=false)
     m_pred_view = @view m_pred[1:H, 1:W]
     pred_f = Float32.(m_pred_view)
     
-    blurred_pred = imfilter(pred_f, Kernel.gaussian((σ, σ)))
+    blurred_pred = imfilter(pred_f, Kernel.gaussian((sig, sig)))
     
     obs_edge_pixels = findall(x -> x > 0.5, obs_f)
     pred_edge_pixels = findall(x -> x > 0.5, pred_f)
@@ -254,7 +254,7 @@ end
 ##             Main                  ##
 #######################################
 
-cache_observation!(obs_img; σ=2.0)
+cache_observation!(obs_img; sig=2.0)
 
 res3d = run_optimization_chain("3d", V3D, E3D, obs_img;
                               width=256, height=256,
