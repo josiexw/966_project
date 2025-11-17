@@ -138,7 +138,7 @@ end
 
 function optimize_camera(vertices, edges, az_init, el_init;
                         width::Int=256, height::Int=256,
-                        num_iterations::Int=200, initial_step::Float64=0.3)
+                        num_iterations::Int=100, initial_step::Float64=0.3)
     
     best_az = az_init
     best_el = el_init
@@ -201,7 +201,7 @@ end
 
 function run_optimization_chain(label::String, vertices, edges, obs_img;
                                width::Int=256, height::Int=256,
-                               num_iterations::Int=200)
+                               num_iterations::Int=100)
 
     mkpath("frames_$label")
 
@@ -258,11 +258,11 @@ cache_observation!(obs_img; sig=2.0)
 
 res3d = run_optimization_chain("3d", V3D, E3D, obs_img;
                               width=256, height=256,
-                              num_iterations=200)
+                              num_iterations=100)
 
 res2d = run_optimization_chain("2d", V2D, E2D, obs_img;
                               width=256, height=256,
-                              num_iterations=200)
+                              num_iterations=100)
 
 prior_3d = 0.5
 prior_2d = 1 - prior_3d
