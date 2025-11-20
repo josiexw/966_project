@@ -106,8 +106,8 @@ end
 function make_pose_grid(num_pose_samples::Int)
     n_az = floor(Int, sqrt(num_pose_samples))
     n_el = cld(num_pose_samples, n_az)
-    az_vals = collect(range(0, 2π; length=n_az+1))[1:end-1]
-    el_vals = collect(range(-π/2, π/2; length=n_el))
+    az_vals = collect(range(0, 2pi; length=n_az+1))[1:end-1]
+    el_vals = collect(range(-pi/2, pi/2; length=n_el))
     [(az, el) for az in az_vals for el in el_vals]
 end
 
@@ -148,8 +148,8 @@ E2D = [(1,2),(2,3),(3,4),(4,1),
        (5,6),(6,7),(7,8),(8,5),
        (1,5),(2,6),(3,7),(4,8)]
 
-az_true = π
-el_true = 0.5π
+az_true = pi
+el_true = 0.5pi
 obs_img, _ = render_wireframe_makie(V3D, E3D;
                                     width=256, height=256,
                                     azimuth=az_true,
