@@ -1,0 +1,16 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+ <title>cube1</title>
+
+ <g>
+  <title>Layer 1</title>
+  <line stroke="#000" stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_2" y2="419.19046" x2="177.89286" y1="114.38096" x1="163" fill="none"/>
+  <line stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_3" y2="114" x2="163" y1="158" x1="394" stroke="#000" fill="none"/>
+  <line stroke="#000" stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_4" y2="158.57143" x2="394" y1="354.89285" x1="378.91667" fill="none"/>
+  <line stroke="#000" stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_5" y2="355.27381" x2="378.75001" y1="419" x1="178" fill="none"/>
+  <line stroke="#000" stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_6" y2="297.40476" x2="284.10714" y1="314.29762" x1="172.5119" fill="none"/>
+  <line stroke="#000" stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_7" y2="297.29762" x2="283.89285" y1="354.40476" x1="378.51191" fill="none"/>
+  <line stroke="#000" stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_8" y2="192.67857" x2="287.40476" y1="182.59523" x1="166.51191" fill="none"/>
+  <line stroke="#000" stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_9" y2="192.78571" x2="286.78571" y1="158" x1="395" fill="none"/>
+  <line stroke="#000" stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_10" y2="192.08333" x2="286.78571" y1="298.32143" x1="283.89286" fill="none"/>
+ </g>
+</svg>
