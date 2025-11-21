@@ -1,5 +1,0 @@
-rank=1 idx=17 az=0.0 el=0.0 logL=-2.0913373516527463 file=shape_2D_rank1.png
-rank=2 idx=1 az=0.0 el=-1.5707963267948966 logL=-2.092571701798776 file=shape_2D_rank2.png
-rank=3 idx=33 az=0.0 el=1.5707963267948966 logL=-2.092571701798776 file=shape_2D_rank3.png
-rank=4 idx=16 az=0.0 el=-0.09817477042468103 logL=-2.17394492887974 file=shape_2D_rank4.png
-rank=5 idx=32 az=0.0 el=1.4726215563702154 logL=-2.1973127828775 file=shape_2D_rank5.png

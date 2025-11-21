@@ -7,11 +7,12 @@ function render_wireframe_makie(vertices::AbstractMatrix,
                                 edges::Vector{<:Tuple{Int,Int}};
                                 width::Int=256, height::Int=256,
                                 azimuth::Real=pi, elevation::Real=pi/6,
+                                perspectiveness::Real=0.5,
                                 linewidth::Real=2,
                                 linecolor=:black,
                                 bgcolor=:white)
     fig = Figure(size=(width, height), backgroundcolor=bgcolor)
-    ax  = Axis3(fig[1,1]; aspect=:data, perspectiveness=0.9, backgroundcolor=bgcolor)
+    ax  = Axis3(fig[1,1]; aspect=:data, perspectiveness=perspectiveness, backgroundcolor=bgcolor)
     hidedecorations!(ax); hidespines!(ax)
     pts  = Point3f.(eachrow(vertices))
     segs = [pts[i] => pts[j] for (i,j) in edges]
@@ -137,29 +138,12 @@ function logsumexp(v::AbstractVector{<:Real})
     m + log(sum(exp.(v .- m)))
 end
 
-function project_vertices(V3D; az, el)
-    Rz = [cos(az) -sin(az) 0;
-          sin(az)  cos(az) 0;
-          0        0       1]
-
-    Rx = [1 0 0;
-          0 cos(el) -sin(el);
-          0 sin(el)  cos(el)]
-
-    R = Rx * Rz
-    V = V3D * R'
-
-    x2 = V[:, 1]
-    y2 = V[:, 2]
-    hcat(x2, y2)  # orthographic projection
-end
-
-function make_pose_grid(num_pose_samples::Int)
+function make_pose_grid(num_pose_samples::Int, p_vals::Vector{<:Real})
     n_az = floor(Int, sqrt(num_pose_samples))
     n_el = cld(num_pose_samples, n_az)
     az_vals = collect(range(0, 2pi; length=n_az+1))[1:end-1]
     el_vals = collect(range(-pi/2, pi/2; length=n_el))
-    [(az, el) for az in az_vals for el in el_vals]
+    [(az, el, p) for az in az_vals for el in el_vals for p in p_vals]
 end
 
 function compare_shapes_marginal_with_topk(obs_img, shapes;
@@ -168,8 +152,9 @@ function compare_shapes_marginal_with_topk(obs_img, shapes;
                                            num_pose_samples::Int=500,
                                            priors::AbstractVector{<:Real}=fill(1/length(shapes), length(shapes)),
                                            k_top::Int=5,
-                                           basename::AbstractString="shape")
-    poses = make_pose_grid(num_pose_samples)
+                                           basename::AbstractString="shape",
+                                           p_vals::Vector{<:Real} = [0.0, 0.25, 0.5, 0.75, 1.0])
+    poses = make_pose_grid(num_pose_samples, p_vals)
     obs_edges = edge_mask(obs_img)
 
     S = length(shapes)
@@ -178,10 +163,10 @@ function compare_shapes_marginal_with_topk(obs_img, shapes;
     for (s, ((V, E), prior)) in enumerate(zip(shapes, priors))
         logLs = fill(-Inf, length(poses))
 
-        for (i, (az, el)) in pairs(poses)
+        for (i, (az, el, p)) in pairs(poses)
             pred_img, _ = render_wireframe_makie(V, E;
                                                  width=width, height=height,
-                                                 azimuth=az, elevation=el)
+                                                 azimuth=az, elevation=el, perspectiveness=p)
             pred_edges = edge_mask(pred_img)
             D = chamfer_distance(obs_edges, pred_edges)
             if isfinite(D)
