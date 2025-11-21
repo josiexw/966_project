@@ -19,26 +19,7 @@ function render_wireframe_makie(vertices::AbstractMatrix,
     linesegments!(ax, segs; linewidth, color=linecolor)
     ax.azimuth[] = azimuth
     ax.elevation[] = elevation
-
-    xs = vertices[:, 1]
-    ys = vertices[:, 2]
-    zs = vertices[:, 3]
-
-    xmin, xmax = extrema(xs)
-    ymin, ymax = extrema(ys)
-    zmin, zmax = extrema(zs)
-
-    if zmin == zmax
-        zmin -= 0.5
-        zmax += 0.5
-    end
-
-    xlims!(ax, xmin - 0.1, xmax + 0.1)
-    ylims!(ax, ymin - 0.1, ymax + 0.1)
-    zlims!(ax, zmin - 0.1, zmax + 0.1)
-
     autolimits!(ax)
-
     img = colorbuffer(fig.scene)
     return img, fig
 end
@@ -153,7 +134,7 @@ function compare_shapes_marginal_with_topk(obs_img, shapes;
                                            priors::AbstractVector{<:Real}=fill(1/length(shapes), length(shapes)),
                                            k_top::Int=5,
                                            basename::AbstractString="shape",
-                                           p_vals::Vector{<:Real} = [0.0, 0.25, 0.5, 0.75, 1.0])
+                                           p_vals::Vector{<:Real} = [0.9])
     poses = make_pose_grid(num_pose_samples, p_vals)
     obs_edges = edge_mask(obs_img)
 
@@ -178,16 +159,17 @@ function compare_shapes_marginal_with_topk(obs_img, shapes;
 
         idxs = sortperm(logLs; rev=true)[1:min(k_top, length(logLs))]
 
-        open("$(basename)_shape$(s)_top$(length(idxs)).txt", "w") do io
+        open("$(basename)_$(s+1)D_top$(length(idxs)).txt", "w") do io
             for (rank, idx) in enumerate(idxs)
-                az, el = poses[idx]
+                az, el, p = poses[idx]
                 logL = logLs[idx]
                 fname = "$(basename)_$(s+1)D_rank$(rank).png"
                 pred_img, fig = render_wireframe_makie(V, E;
                                                        width=width, height=height,
-                                                       azimuth=az, elevation=el)
+                                                       azimuth=az, elevation=el,
+                                                       perspectiveness=p)
                 save(fname, fig)
-                println(io, "rank=$(rank) idx=$(idx) az=$(az) el=$(el) logL=$(logL) file=$(fname)")
+                println(io, "rank=$(rank) idx=$(idx) az=$(az) el=$(el) p=$(p) logL=$(logL) file=$(fname)")
             end
         end
     end
@@ -197,23 +179,49 @@ function compare_shapes_marginal_with_topk(obs_img, shapes;
     unnorm ./ sum(unnorm)
 end
 
-V2D = Float32.([0 0 0; 1 0 0; 1 1 0; 0 1 0])
-E2D = [(1, 2), (2, 3), (3, 4), (4, 1)]
+V2D = Float32.([
+    0.0027 0.0049 0.0000;
+    0.9973 0.0073 0.0000;
+    0.4545 0.9976 0.0000;
+    0.4251 0.0024 0.0000;
+    0.8422 0.8439 0.0000;
+    0.4519 0.9976 0.0000;
+    0.1310 0.7902 0.0000;
+    0.4519 1.0000 0.0000;
+    0.0000 0.0000 0.0000;
+    0.1337 0.7951 0.0000;
+    1.0000 0.0049 0.0000;
+    0.8449 0.8463 0.0000;
+    0.7781 0.6195 0.0000;
+    0.8449 0.8488 0.0000;
+    0.8583 0.0049 0.0000;
+    0.7834 0.6268 0.0000;
+    0.5321 0.5390 0.0000;
+    0.7861 0.6268 0.0000;
+    0.5294 0.0049 0.0000;
+    0.5321 0.5366 0.0000;
+    0.2594 0.5927 0.0000;
+    0.5348 0.5390 0.0000;
+    0.1310 0.7927 0.0000;
+    0.2647 0.5878 0.0000;
+    0.1925 0.0073 0.0000;
+    0.2620 0.5854 0.0000
+])
+E2D = [(1,2),(3,4),(5,6),(7,8),(9,10),(11,12),(13,14),(15,16),(17,18),(19,20),(21,22),(23,24),(25,26)]
 
-V3D = Float32.([0 0 0; 1 0 0; 1 1 0; 0 1 0; 0 0 1; 1 0 1; 1 1 1; 0 1 1])
-E3D = [(1,2),(2,3),(3,4),(4,1),
-       (5,6),(6,7),(7,8),(8,5),
-       (1,5),(2,6),(3,7),(4,8)]
+V3D = Float32.([1.0 0.5 0.0; 0.75 0.9330127 0.0; 0.24999997 0.9330127 0.0; 0.0 0.49999997 0.0; 0.25000006 0.066987276 0.0; 0.7500002 0.066987395 0.0; 1.0 0.5 1.0; 0.75 0.9330127 1.0; 0.24999997 0.9330127 1.0; 0.0 0.49999997 1.0; 0.25000006 0.066987276 1.0; 0.7500002 0.066987395 1.0])
+E3D = [(1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1), (7, 8), (8, 9), (9, 10), (10, 11), (11, 12), (12, 7), (1, 7), (2, 8), (3, 9), (4, 10), (5, 11), (6, 12)]
 
-az_true = 3.13
-el_true = 1.42
+az_true = 0.1
+el_true = 0.38
 
-obs_img, _ = render_wireframe_makie(V2D, E2D;
+obs_img, _ = render_wireframe_makie(V3D, E3D;
                                     azimuth=az_true,
-                                    elevation=el_true)
+                                    elevation=el_true,
+                                    perspectiveness=0.9)
 save("obs_img.png", obs_img)
 
-shapes = [(V3D, E3D), (V2D, E2D)]
+shapes = [(V2D, E2D), (V3D, E3D)]
 
 post = compare_shapes_marginal_with_topk(obs_img, shapes;
                                          width=256, height=256,
@@ -223,5 +231,5 @@ post = compare_shapes_marginal_with_topk(obs_img, shapes;
                                          basename="shape")
 
 println("\nBAYESIAN MARGINAL-LIKELIHOOD ANALYSIS")
-println("P(3D | image) = $(round(post[1], digits=4))")
-println("P(2D | image) = $(round(post[2], digits=4))")
+println("P(2D | image) = $(round(post[1], digits=4))")
+println("P(3D | image) = $(round(post[2], digits=4))")
