@@ -1,0 +1,19 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+ <title>cube2</title>
+ <g id="Layer_1">
+  <title>Layer 1</title>
+  <line stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_2" y2="109.90845" x2="265.02181" y1="202.52192" x1="99.68119" stroke="#000" fill="none"/>
+  <line stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_3" y2="109.34027" x2="263.88545" y1="219.56735" x1="417.86245" stroke="#000" fill="none"/>
+  <line stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_4" y2="219.56735" x2="418.43063" y1="405.93066" x1="239.45368" stroke="#000" fill="none"/>
+  <line stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_5" y2="405.93066" x2="239.45368" y1="201.95374" x1="99.68119" stroke="#000" fill="none"/>
+  <line stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_6" y2="407.06702" x2="239.45368" y1="364.45346" x1="248.54457" stroke="#000" fill="none"/>
+  <line stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_7" y2="272.40816" x2="179.79469" y1="202.52192" x1="99.68119" stroke="#000" fill="none"/>
+  <line stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_8" y2="271.2718" x2="178.09015" y1="365.02164" x1="248.54457" stroke="#000" fill="none"/>
+  <line stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_9" y2="108.20391" x2="264.45363" y1="212.74918" x1="260.47637" stroke="#000" fill="none"/>
+  <line stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_10" y2="211.61282" x2="260.47637" y1="281.49906" x1="333.20351" stroke="#000" fill="none"/>
+  <line stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_11" y2="282.63542" x2="332.63533" y1="220.13553" x1="418.43063" stroke="#000" fill="none"/>
+  <line stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_12" y2="282.63542" x2="332.06715" y1="365.02164" x1="247.40821" stroke="#000" fill="none"/>
+  <line stroke-linecap="undefined" stroke-linejoin="undefined" id="svg_13" y2="212.181" x2="260.47637" y1="271.2718" x1="179.22651" stroke="#000" fill="none"/>
+ </g>
+
+</svg>

@@ -1,5 +1,3 @@
-import sys
-import math
 import xml.etree.ElementTree as ET
 import re
 
@@ -32,7 +30,7 @@ def parse_path_d(d_str):
             idx += 1
             continue
         if cmd is None:
-            idx += 1            # skip unexpected numbers before a command
+            idx += 1
             continue
         if idx + 1 >= len(tokens):
             break
@@ -144,16 +142,16 @@ def svg_to_wireframe(svg_path, eps=1e-3):
     return vertices_3d, edges
 
 def main():
-    svg_path = "svg/cube1.svg"
+    svg_path = "svg/hex2.svg"
     v3d, edges = svg_to_wireframe(svg_path)
 
-    print("V3D = Float32.([")
+    print("V2D = Float32.([")
     for i, (x, y, z) in enumerate(v3d):
         sep = ";" if i < len(v3d) - 1 else ""
         print(f"    {x:.4f} {y:.4f} {z:.4f}{sep}")
     print("])\n")
 
-    print("E3D = [", end="")
+    print("E2D = [", end="")
     for i, (a, b) in enumerate(edges):
         sep = "," if i < len(edges) - 1 else ""
         print(f"({a},{b}){sep}", end="")

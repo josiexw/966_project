@@ -18,6 +18,26 @@ function render_wireframe_makie(vertices::AbstractMatrix,
     linesegments!(ax, segs; linewidth, color=linecolor)
     ax.azimuth[] = azimuth
     ax.elevation[] = elevation
+
+    xs = vertices[:, 1]
+    ys = vertices[:, 2]
+    zs = vertices[:, 3]
+
+    xmin, xmax = extrema(xs)
+    ymin, ymax = extrema(ys)
+    zmin, zmax = extrema(zs)
+
+    if zmin == zmax
+        zmin -= 0.5
+        zmax += 0.5
+    end
+
+    xlims!(ax, xmin - 0.1, xmax + 0.1)
+    ylims!(ax, ymin - 0.1, ymax + 0.1)
+    zlims!(ax, zmin - 0.1, zmax + 0.1)
+
+    autolimits!(ax)
+
     img = colorbuffer(fig.scene)
     return img, fig
 end
@@ -31,22 +51,54 @@ function edge_mask(img; thresh::Real=0.5)
     BitMatrix(gray .< thresh)
 end
 
-function chamfer_distance(obs_edges::BitMatrix, pred_edges::BitMatrix)
-    As = findall(obs_edges)
-    Bs = findall(pred_edges)
+function edge_coords(edges::BitMatrix)
+    idxs = findall(edges)
+    n = length(idxs)
+    xs = Array{Float64}(undef, n)
+    ys = Array{Float64}(undef, n)
+    for (i, idx) in enumerate(idxs)
+        ys[i] = idx[1]
+        xs[i] = idx[2]
+    end
+    hcat(xs, ys)
+end
 
-    if isempty(As) && isempty(Bs)
+# Make scale and transition invariant
+function normalize_points(pts::AbstractMatrix{<:Real})
+    if size(pts, 1) == 0
+        return Array{Float64}(undef, 0, 2)
+    end
+    ptsf = Array{Float64}(pts)
+    μ = vec(mean(ptsf, dims=1))
+    pts0 = ptsf .- μ'
+    r = maximum(sqrt.(sum(abs2, pts0; dims=2)))
+    if r == 0.0
+        return pts0
+    end
+    pts0 ./ r
+end
+
+function chamfer_distance(obs_edges::BitMatrix, pred_edges::BitMatrix)
+    As_raw = edge_coords(obs_edges)
+    Bs_raw = edge_coords(pred_edges)
+
+    if size(As_raw, 1) == 0 && size(Bs_raw, 1) == 0
         return 0.0
-    elseif isempty(As) || isempty(Bs)
+    elseif size(As_raw, 1) == 0 || size(Bs_raw, 1) == 0
         return Inf
     end
 
+    As = normalize_points(As_raw)
+    Bs = normalize_points(Bs_raw)
+
     dA = 0.0
-    for a in As
-        ax, ay = Tuple(a)
+    for i in 1:size(As, 1)
+        ax = As[i, 1]
+        ay = As[i, 2]
         min_d2 = Inf
-        for b in Bs
-            bx, by = Tuple(b)
+        for j in 1:size(Bs, 1)
+            bx = Bs[j, 1]
+            by = Bs[j, 2]
             dx = ax - bx
             dy = ay - by
             d2 = dx*dx + dy*dy
@@ -56,14 +108,16 @@ function chamfer_distance(obs_edges::BitMatrix, pred_edges::BitMatrix)
         end
         dA += sqrt(min_d2)
     end
-    dA /= length(As)
+    dA /= size(As, 1)
 
     dB = 0.0
-    for b in Bs
-        bx, by = Tuple(b)
+    for j in 1:size(Bs, 1)
+        bx = Bs[j, 1]
+        by = Bs[j, 2]
         min_d2 = Inf
-        for a in As
-            ax, ay = Tuple(a)
+        for i in 1:size(As, 1)
+            ax = As[i, 1]
+            ay = As[i, 2]
             dx = bx - ax
             dy = by - ay
             d2 = dx*dx + dy*dy
@@ -73,7 +127,7 @@ function chamfer_distance(obs_edges::BitMatrix, pred_edges::BitMatrix)
         end
         dB += sqrt(min_d2)
     end
-    dB /= length(Bs)
+    dB /= size(Bs, 1)
 
     (dA + dB) / 2
 end
@@ -81,26 +135,6 @@ end
 function logsumexp(v::AbstractVector{<:Real})
     m = maximum(v)
     m + log(sum(exp.(v .- m)))
-end
-
-function log_marginal_likelihood_shape_chamfer(vertices, edges, obs_img, poses;
-                                               width::Int=256, height::Int=256,
-                                               sig_d_squared::Real=1.0)
-    obs_edges = edge_mask(obs_img)
-    logLs = Vector{Float64}(undef, length(poses))
-    for (i, (az, el)) in pairs(poses)
-        pred_img, _ = render_wireframe_makie(vertices, edges;
-                                             width=width, height=height,
-                                             azimuth=az, elevation=el)
-        pred_edges = edge_mask(pred_img)
-        D = chamfer_distance(obs_edges, pred_edges)
-        if isfinite(D)
-            logLs[i] = -(D^2) / (2sig_d_squared)
-        else
-            logLs[i] = -Inf
-        end
-    end
-    logsumexp(logLs) - log(length(poses))
 end
 
 function make_pose_grid(num_pose_samples::Int)
@@ -111,57 +145,104 @@ function make_pose_grid(num_pose_samples::Int)
     [(az, el) for az in az_vals for el in el_vals]
 end
 
-function compare_shapes_marginal(obs_img, shapes;
-                                 width::Int=256, height::Int=256,
-                                 sig_d_squared::Real=1.0,
-                                 num_pose_samples::Int=500,
-                                 priors::AbstractVector{<:Real}=fill(1/length(shapes), length(shapes)))
+function compare_shapes_marginal_with_topk(obs_img, shapes;
+                                           width::Int=256, height::Int=256,
+                                           sig_d_squared::Real=1.0,
+                                           num_pose_samples::Int=500,
+                                           priors::AbstractVector{<:Real}=fill(1/length(shapes), length(shapes)),
+                                           k_top::Int=5,
+                                           basename::AbstractString="shape")
     poses = make_pose_grid(num_pose_samples)
-    logps = Vector{Float64}(undef, length(shapes))
-    for (k, ((V, E), prior)) in enumerate(zip(shapes, priors))
-        logps[k] = log(prior) + log_marginal_likelihood_shape_chamfer(V, E, obs_img, poses;
-                                                                      width=width,
-                                                                      height=height,
-                                                                      sig_d_squared=sig_d_squared)
+    obs_edges = edge_mask(obs_img)
+
+    S = length(shapes)
+    logps = Vector{Float64}(undef, S)
+
+    for (s, ((V, E), prior)) in enumerate(zip(shapes, priors))
+        logLs = fill(-Inf, length(poses))
+
+        for (i, (az, el)) in pairs(poses)
+            pred_img, _ = render_wireframe_makie(V, E;
+                                                 width=width, height=height,
+                                                 azimuth=az, elevation=el)
+            pred_edges = edge_mask(pred_img)
+            D = chamfer_distance(obs_edges, pred_edges)
+            if isfinite(D)
+                logLs[i] = -(D^2) / (2 * sig_d_squared)
+            end
+        end
+
+        logps[s] = log(prior) + logsumexp(logLs) - log(length(poses))
+
+        idxs = sortperm(logLs; rev=true)[1:min(k_top, length(logLs))]
+
+        open("$(basename)_shape$(s)_top$(length(idxs)).txt", "w") do io
+            for (rank, idx) in enumerate(idxs)
+                az, el = poses[idx]
+                logL = logLs[idx]
+                fname = "$(basename)_shape$(s)_rank$(rank).png"
+                pred_img, fig = render_wireframe_makie(V, E;
+                                                       width=width, height=height,
+                                                       azimuth=az, elevation=el)
+                save(fname, fig)
+                println(io, "rank=$(rank) idx=$(idx) az=$(az) el=$(el) logL=$(logL) file=$(fname)")
+            end
+        end
     end
+
     m = maximum(logps)
     unnorm = exp.(logps .- m)
     unnorm ./ sum(unnorm)
 end
+
+V2D = Float32.([
+    0.0000 0.3156 0.0000;
+    0.5187 0.0057 0.0000;
+    0.9982 0.3726 0.0000;
+    0.5152 0.0038 0.0000;
+    0.4385 0.9962 0.0000;
+    1.0000 0.3726 0.0000;
+    0.0000 0.3137 0.0000;
+    0.4670 0.8574 0.0000;
+    0.4385 1.0000 0.0000;
+    0.2513 0.5494 0.0000;
+    0.4670 0.8593 0.0000;
+    0.2460 0.5456 0.0000;
+    0.5045 0.3498 0.0000;
+    0.5169 0.0000 0.0000;
+    0.7326 0.5798 0.0000;
+    0.5045 0.3460 0.0000;
+    1.0000 0.3745 0.0000;
+    0.7308 0.5837 0.0000;
+    0.4635 0.8593 0.0000;
+    0.7291 0.5837 0.0000;
+    0.2496 0.5456 0.0000;
+    0.5045 0.3479 0.0000
+])
+
+E2D = [(1,2),(1,10),(3,4),(5,6),(5,7),(8,9),(11,12),(13,14),(15,16),(17,18),(19,20),(21,22)]
 
 V3D = Float32.([0 0 0; 1 0 0; 1 1 0; 0 1 0; 0 0 1; 1 0 1; 1 1 1; 0 1 1])
 E3D = [(1,2),(2,3),(3,4),(4,1),
        (5,6),(6,7),(7,8),(8,5),
        (1,5),(2,6),(3,7),(4,8)]
 
-V2D = Float32.([
-    0.0 0.0 0.0;
-    1.0 0.0 0.0;
-    1.0 1.0 0.0;
-    0.0 1.0 0.0;
-    0.25 0.25 0.0;
-    0.75 0.25 0.0;
-    0.75 0.75 0.0;
-    0.25 0.75 0.0
-])
-E2D = [(1,2),(2,3),(3,4),(4,1),
-       (5,6),(6,7),(7,8),(8,5),
-       (1,5),(2,6),(3,7),(4,8)]
+az_true = 5.57
+el_true = 1.17
 
-az_true = pi
-el_true = 0.5pi
 obs_img, _ = render_wireframe_makie(V3D, E3D;
-                                    width=256, height=256,
                                     azimuth=az_true,
                                     elevation=el_true)
 save("obs_img.png", obs_img)
 
 shapes = [(V3D, E3D), (V2D, E2D)]
 
-post = compare_shapes_marginal(obs_img, shapes;
-                               width=256, height=256,
-                               sig_d_squared=1.0,
-                               num_pose_samples=1000)
+post = compare_shapes_marginal_with_topk(obs_img, shapes;
+                                         width=256, height=256,
+                                         sig_d_squared=1.0,
+                                         num_pose_samples=1000,
+                                         k_top=5,
+                                         basename="shape")
 
 println("\nBAYESIAN MARGINAL-LIKELIHOOD ANALYSIS")
 println("P(3D | image) = $(round(post[1], digits=4))")
