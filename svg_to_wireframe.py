@@ -142,7 +142,7 @@ def svg_to_wireframe(svg_path, eps=1e-3):
     return vertices_3d, edges
 
 def main():
-    svg_path = "svg/hex2.svg"
+    svg_path = "svg/cube1.svg"
     v3d, edges = svg_to_wireframe(svg_path)
 
     print("V2D = Float32.([")

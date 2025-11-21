@@ -137,6 +137,23 @@ function logsumexp(v::AbstractVector{<:Real})
     m + log(sum(exp.(v .- m)))
 end
 
+function project_vertices(V3D; az, el)
+    Rz = [cos(az) -sin(az) 0;
+          sin(az)  cos(az) 0;
+          0        0       1]
+
+    Rx = [1 0 0;
+          0 cos(el) -sin(el);
+          0 sin(el)  cos(el)]
+
+    R = Rx * Rz
+    V = V3D * R'
+
+    x2 = V[:, 1]
+    y2 = V[:, 2]
+    hcat(x2, y2)  # orthographic projection
+end
+
 function make_pose_grid(num_pose_samples::Int)
     n_az = floor(Int, sqrt(num_pose_samples))
     n_el = cld(num_pose_samples, n_az)
@@ -180,7 +197,7 @@ function compare_shapes_marginal_with_topk(obs_img, shapes;
             for (rank, idx) in enumerate(idxs)
                 az, el = poses[idx]
                 logL = logLs[idx]
-                fname = "$(basename)_shape$(s)_rank$(rank).png"
+                fname = "$(basename)_$(s+1)D_rank$(rank).png"
                 pred_img, fig = render_wireframe_makie(V, E;
                                                        width=width, height=height,
                                                        azimuth=az, elevation=el)
@@ -195,42 +212,18 @@ function compare_shapes_marginal_with_topk(obs_img, shapes;
     unnorm ./ sum(unnorm)
 end
 
-V2D = Float32.([
-    0.0000 0.3156 0.0000;
-    0.5187 0.0057 0.0000;
-    0.9982 0.3726 0.0000;
-    0.5152 0.0038 0.0000;
-    0.4385 0.9962 0.0000;
-    1.0000 0.3726 0.0000;
-    0.0000 0.3137 0.0000;
-    0.4670 0.8574 0.0000;
-    0.4385 1.0000 0.0000;
-    0.2513 0.5494 0.0000;
-    0.4670 0.8593 0.0000;
-    0.2460 0.5456 0.0000;
-    0.5045 0.3498 0.0000;
-    0.5169 0.0000 0.0000;
-    0.7326 0.5798 0.0000;
-    0.5045 0.3460 0.0000;
-    1.0000 0.3745 0.0000;
-    0.7308 0.5837 0.0000;
-    0.4635 0.8593 0.0000;
-    0.7291 0.5837 0.0000;
-    0.2496 0.5456 0.0000;
-    0.5045 0.3479 0.0000
-])
-
-E2D = [(1,2),(1,10),(3,4),(5,6),(5,7),(8,9),(11,12),(13,14),(15,16),(17,18),(19,20),(21,22)]
+V2D = Float32.([0 0 0; 1 0 0; 1 1 0; 0 1 0])
+E2D = [(1, 2), (2, 3), (3, 4), (4, 1)]
 
 V3D = Float32.([0 0 0; 1 0 0; 1 1 0; 0 1 0; 0 0 1; 1 0 1; 1 1 1; 0 1 1])
 E3D = [(1,2),(2,3),(3,4),(4,1),
        (5,6),(6,7),(7,8),(8,5),
        (1,5),(2,6),(3,7),(4,8)]
 
-az_true = 5.57
-el_true = 1.17
+az_true = 3.13
+el_true = 1.42
 
-obs_img, _ = render_wireframe_makie(V3D, E3D;
+obs_img, _ = render_wireframe_makie(V2D, E2D;
                                     azimuth=az_true,
                                     elevation=el_true)
 save("obs_img.png", obs_img)
@@ -239,7 +232,7 @@ shapes = [(V3D, E3D), (V2D, E2D)]
 
 post = compare_shapes_marginal_with_topk(obs_img, shapes;
                                          width=256, height=256,
-                                         sig_d_squared=1.0,
+                                         sig_d_squared=0.001,
                                          num_pose_samples=1000,
                                          k_top=5,
                                          basename="shape")
